@@ -3,6 +3,10 @@ const express = require('express');
 //pas besoin d'installer Bodyparser déjà intégré dans Express
 const mongoose = require('mongoose');
 
+/********ROUTES********/
+//const stuffRoutes = require('./routes/stuff'); (exemple)
+
+
 //express run
 const app = express();
 
@@ -26,6 +30,8 @@ mongoose.connect('mongodb+srv://Helvlaska:lnORD605303@atlascluster.w3qjnpw.mongo
   .then(() => console.log('Connexion à MongoDB réussie !'))
   .catch(() => console.log('Connexion à MongoDB échouée !'));
 
+//Utilisation des routes
+//app.use('/api/stuff', stuffRoutes); (exemple)
 
 app.use((req, res) => {
    res.json({ message: 'Votre requête a bien été reçue !' }); 
