@@ -3,9 +3,11 @@ const express = require('express');
 //pas besoin d'installer Bodyparser déjà intégré dans Express
 const mongoose = require('mongoose');
 const path = require('path');
+
 /********ROUTES********/
 //const stuffRoutes = require('./routes/stuff'); (exemple)
 const userRoutes = require('./routes/user');
+const sauceRoutes = require('./routes/sauces');
 
 //express run
 const app = express();
@@ -34,6 +36,7 @@ mongoose.connect('mongodb+srv://Helvlaska:lnORD605303@atlascluster.w3qjnpw.mongo
 //app.use('/api/stuff', stuffRoutes); (exemple)
 app.use('/api/auth', userRoutes);
 app.use('/images', express.static(path.join(__dirname, 'images')));
+app.use('/api/sauces', sauceRoutes);
 
 app.use((req, res) => {
    res.json({ message: 'Votre requête a bien été reçue !' }); 
