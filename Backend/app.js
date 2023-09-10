@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 
 /********ROUTES********/
 //const stuffRoutes = require('./routes/stuff'); (exemple)
-
+const userRoutes = require('./routes/user');
 
 //express run
 const app = express();
@@ -32,6 +32,7 @@ mongoose.connect('mongodb+srv://Helvlaska:lnORD605303@atlascluster.w3qjnpw.mongo
 
 //Utilisation des routes
 //app.use('/api/stuff', stuffRoutes); (exemple)
+app.use('/api/auth', userRoutes);
 
 app.use((req, res) => {
    res.json({ message: 'Votre requête a bien été reçue !' }); 
