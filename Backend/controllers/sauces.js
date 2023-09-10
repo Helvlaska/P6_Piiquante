@@ -4,27 +4,19 @@ const Sauce = require('../models/sauces');
 /**********LOGIQUE METIER**********/
 //Ajout d'une nouvelle sauce
 exports.createSauce = (req, res, next) => {
-  const sauce = new Sauce({
-    title: req.body.title,
-    description: req.body.description,
-    imageUrl: req.body.imageUrl,
-    price: req.body.price,
-    userId: req.body.userId
-  });
-  sauce.save().then(
-    () => {
-      res.status(201).json({
-        message: 'Post saved successfully!'
-      });
-    }
-  ).catch(
-    (error) => {
-      res.status(400).json({
-        error: error
-      });
-    }
-  );
-};
+    const sauceObject = JSON.parse(req.body.sauce);
+    delete sauceObject._id;
+    delete sauceObject._userId;
+    const sauce = new Sauce({
+        ...sauceObject,
+        userId: req.auth.userId,
+        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+    });
+  
+    sauce.save()
+    .then(() => { res.status(201).json({message: 'Objet enregistré !'})})
+    .catch(error => { res.status(400).json( { error })})
+ };
 
 //Récupérer une sauce
 exports.getOneSauce = (req, res, next) => {
