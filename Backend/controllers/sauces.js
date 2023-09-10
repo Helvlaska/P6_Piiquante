@@ -1,5 +1,7 @@
 /**********CE DONT J'AI BESOIN**********/
 const Sauce = require('../models/sauces');
+//accès aux fonctions qui nous permettent  de supprimer les fichiers.
+const fs = require('fs');
 
 /**********LOGIQUE METIER**********/
 //Ajout d'une nouvelle sauce
@@ -57,23 +59,26 @@ exports.modifySauce = (req, res, next) => {
             res.status(400).json({ error });
         });
  };
- 
+
 //Supprimer une sauce
 exports.deleteSauce = (req, res, next) => {
-    Sauce.deleteOne({_id: req.params.id}).then(
-    () => {
-      res.status(200).json({
-        message: 'Deleted!'
-      });
-    }
-  ).catch(
-    (error) => {
-      res.status(400).json({
-        error: error
-      });
-    }
-  );
-};
+    Sauce.findOne({ _id: req.params.id})
+        .then(sauce => {
+            if (sauce.userId != req.auth.userId) {
+                res.status(401).json({message: 'Not authorized'});
+            } else {
+                const filename = sauce.imageUrl.split('/images/')[1];
+                fs.unlink(`images/${filename}`, () => {
+                    Sauce.deleteOne({_id: req.params.id})
+                        .then(() => { res.status(200).json({message: 'Objet supprimé !'})})
+                        .catch(error => res.status(401).json({ error }));
+                });
+            }
+        })
+        .catch( error => {
+            res.status(500).json({ error });
+        });
+ };
 
 //Récuperer toutes les sauces
 exports.getAllSauce = (req, res, next) => {
