@@ -94,3 +94,116 @@ exports.getAllSauce = (req, res, next) => {
     }
   );
 };
+
+//Gestion des Likes et Dislikes
+exports.incrementLikes = (req, res, next) => {
+  //Récupérer l'id de la sauce
+  const sauceId = req.params.id; 
+  //Récupérer l'id de l'user
+  const userId = req.body.userId;
+  //Récupérer le statut de vote (like/dislike) ça on peu l'enlever, sert a rien 
+  //const likeStatus = req.body.likes;
+
+  //Dans la collection Sauce rechercher une sauce par son Id
+  /*Sauce.findById(sauceId)
+        .then(sauce => {
+            //si il ne trouve pas la sauce = message dans la console
+            if (!sauce) {
+                return res.status(404).json({ message: 'sauce non trouvé' });
+            }
+
+            // Vérifier si l'utilisateur avait déjà voté pour ce produit
+
+            //vérifie s'il est dans la liste des users qui ont aimé
+            const userIndexInLiked = sauce.usersLiked.indexOf(userId);
+            //vérifie s'il est dans la liste des users qui ont pas aimé
+            const userIndexInDisliked = sauce.usersDisliked.indexOf(userId);
+
+            //si l'user souhaite liker la sauce
+            if (likeStatus === 'likes') {
+                //et si il n'a pas déja liker la sauce
+                if (userIndexInLiked === -1) {
+                  sauce.likes++; // +1 au vote like
+                  sauce.usersLiked.push(userId); //on ajoute l'id de l'user au tableau des likes
+                    //et si il avait deja dislike la sauce
+                    if (userIndexInDisliked !== -1) {
+                      sauce.dislikes--; // -1 aux dislikes
+                      sauce.usersDisliked.splice(userIndexInDisliked, 1); //ont retire l'id user du tableau dislikes
+                    }
+                } else {
+                    // L'utilisateur annule son vote (like)
+                    sauce.likes--;
+                    sauce.usersLiked.splice(userIndexInLiked, 1);
+                }
+                //reformuler l'algo!!
+            } else if (likeStatus === 'dislikes') {
+                if (userIndexInDisliked === -1) {
+                  sauce.dislikes++;
+                  sauce.usersDisliked.push(userId);
+
+                    if (userIndexInLiked !== -1) {
+                      sauce.likes--;
+                      sauce.usersLiked.splice(userIndexInLiked, 1);
+                    }
+                } else {
+                    // L'utilisateur annule son vote (dislike)
+                    sauce.dislikes--;
+                    sauce.usersDisliked.splice(userIndexInDisliked, 1);
+                }
+            } else {
+                return res.status(400).json({ message: 'Statut de vote invalide' });
+            }
+
+            // Enregistrer les modifications dans la base de données
+            return sauce.save()
+                .then(updatedSauce => {
+                    return res.status(200).json(updatedSauce);
+                });
+        })
+        .catch(error => {
+            console.error(error);
+            return res.status(500).json({ message: 'Erreur serveur' });
+        });*/
+
+  Sauce.findById(sauceId)
+      .then(sauce => {
+          if (!sauce) {
+              return res.status(404).json({ message: 'Sauce non trouvé' });
+          }
+
+          if (!sauce.usersLiked.includes(userId)) {
+              sauce.likes++;
+              sauce.usersLiked.push(userId);
+
+              // Vérifier si l'utilisateur avait déjà liké ce produit
+              // Vérifier si l'utilisateur avait déjà disliké ce produit
+              const indexOfLikedUser = sauce.usersLiked.indexOf(userId);
+              const indexOfDislikedUser = sauce.usersDisliked.indexOf(userId);
+
+              if (indexOfDislikedUser !== -1) {
+                sauce.dislikes--;
+                sauce.usersDisliked.splice(indexOfDislikedUser, 1);
+              }
+
+              // Enregistrer les modifications dans la base de données
+              return sauce.save()
+                  .then(updatedSauce => {
+                      return res.status(200).json(updatedSauce);
+                  });
+          } else {
+              // L'utilisateur annule son like
+              sauce.likes--;
+              sauce.usersLiked = sauce.usersLiked.filter(id => id !== userId);
+
+              // Enregistrer les modifications dans la base de données
+              return sauce.save()
+                  .then(updatedSauce => {
+                      return res.status(200).json(updatedSauce);
+                  });
+          }
+      })
+      .catch(error => {
+          console.error(error);
+          return res.status(500).json({ message: 'Erreur serveur' });
+      });
+}
