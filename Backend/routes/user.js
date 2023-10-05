@@ -3,9 +3,9 @@ const express = require('express');
 const router = express.Router();
 const userCtrl = require('../controllers/user');
 
-/**********CONTROLLERS UTILISES**********/
+/**********ROUTES**********/
 router.post('/signup', userCtrl.signup);
 router.post('/login', userCtrl.login);
 
-//routes/user importable partout dans le projet
+// importable partout dans le projet
 module.exports = router;

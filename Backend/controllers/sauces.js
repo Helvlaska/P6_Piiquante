@@ -1,35 +1,33 @@
 /**********CE DONT J'AI BESOIN**********/
-const Sauce = require('../models/sauces');
-//accès aux fonctions qui nous permettent  de supprimer les fichiers.
-const fs = require('fs');
+const Sauce = require('../models/sauces'); //import du model user
+const fs = require('fs'); //accès aux fonctions qui nous permettent de supprimer les fichiers
 
 /**********LOGIQUE METIER**********/
-//Ajout d'une nouvelle sauce
-exports.createSauce = (req, res, next) => {
-    const sauceObject = JSON.parse(req.body.sauce);
-    delete sauceObject._id;
-    delete sauceObject._userId;
-    const sauce = new Sauce({
+
+exports.createSauce = (req, res, next) => { //Ajout d'une nouvelle sauce
+    const sauceObject = JSON.parse(req.body.sauce); // récupère les infos du formulaire de création de sauce
+    delete sauceObject._id; // supprime l'id de la sauce par défaut
+    delete sauceObject._userId; // supprime l'id du user par défaut
+    const sauce = new Sauce({ // création d'un nouvel obj "user" via le model
         ...sauceObject,
-        userId: req.auth.userId,
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+        userId: req.auth.userId, // Lie la sauce au userId
+        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}` // traitement du fichier image
     });
   
-    sauce.save()
-    .then(() => { res.status(201).json({message: 'Objet enregistré !'})})
-    .catch(error => { res.status(400).json( { error })})
+    sauce.save() // sauvegarde de l'obj sauce dans la base de données
+    .then(() => { res.status(201).json({message: 'Objet enregistré !'})}) 
+    .catch(error => { res.status(400).json( { error })}) 
  };
 
-//Récupérer une sauce
-exports.getOneSauce = (req, res, next) => {
-    Sauce.findOne({
-    _id: req.params.id
+exports.getOneSauce = (req, res, next) => { //Récupérer une sauce
+    Sauce.findOne({ // dans la collection sauce rechercher une sauce...
+    _id: req.params.id // ... avec son id
   }).then(
-    (sauce) => {
+    (sauce) => { // renvoie la sauce recherchée 
       res.status(200).json(sauce);
     }
   ).catch(
-    (error) => {
+    (error) => { // envoie une erreur console
       res.status(404).json({
         error: error
       });
@@ -37,104 +35,97 @@ exports.getOneSauce = (req, res, next) => {
   );
 };
 
-//Modifier une sauce
-exports.modifySauce = (req, res, next) => {
-    const sauceObject = req.file ? {
-        ...JSON.parse(req.body.sauce),
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+exports.modifySauce = (req, res, next) => { //Modifier une sauce
+    const sauceObject = req.file ? { // nouvelle obj qui regarde les modifications apportées a la sauce du body
+        ...JSON.parse(req.body.sauce), // récupérations des données du body
+        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}` // récupération image
     } : { ...req.body };
   
-    delete sauceObject._userId;
-    Sauce.findOne({_id: req.params.id})
+    delete sauceObject._userId; // supprime le userId client pour verifier que le user est bien le createur de l'obj (token)
+    Sauce.findOne({_id: req.params.id}) // recherche dans la collection sauce, la sauce du body
         .then((sauce) => {
-            if (sauce.userId != req.auth.userId) {
-                res.status(401).json({ message : 'Not authorized'});
+            if (sauce.userId != req.auth.userId) { // si l'user n'est pas propriétaire de la sauce
+                res.status(401).json({ message : 'Not authorized'}); // envoie une erreur console
             } else {
-                Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id})
-                .then(() => res.status(200).json({message : 'Objet modifié!'}))
-                .catch(error => res.status(401).json({ error }));
+                Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id}) // si l'user est le propriétaire de la sauce faire les modifications
+                .then(() => res.status(200).json({message : 'Objet modifié!'})) // modifications acceptées
+                .catch(error => res.status(401).json({ error })); // alerte console en cas de problèmes
             }
         })
         .catch((error) => {
-            res.status(400).json({ error });
+            res.status(400).json({ error }); // alerte console en cas de problèmes
         });
  };
 
-//Supprimer une sauce
-exports.deleteSauce = (req, res, next) => {
-    Sauce.findOne({ _id: req.params.id})
+exports.deleteSauce = (req, res, next) => { //Supprimer une sauce
+    Sauce.findOne({ _id: req.params.id}) // recherche dans la collection sauce, la sauce du body
         .then(sauce => {
-            if (sauce.userId != req.auth.userId) {
+            if (sauce.userId != req.auth.userId) { // si le user n'est pas propriétaire de la sauce, l'action n'est pas autorisée
                 res.status(401).json({message: 'Not authorized'});
-            } else {
-                const filename = sauce.imageUrl.split('/images/')[1];
+            } else { // sinon...
+                const filename = sauce.imageUrl.split('/images/')[1]; //... suppression de l'image
                 fs.unlink(`images/${filename}`, () => {
-                    Sauce.deleteOne({_id: req.params.id})
+                    Sauce.deleteOne({_id: req.params.id}) // ... suppression de l'obj
                         .then(() => { res.status(200).json({message: 'Objet supprimé !'})})
-                        .catch(error => res.status(401).json({ error }));
+                        .catch(error => res.status(401).json({ error })); // alerte console en cas de problèmes
                 });
             }
         })
         .catch( error => {
-            res.status(500).json({ error });
+            res.status(500).json({ error }); // alerte console en cas de problèmes
         });
  };
 
-//Récuperer toutes les sauces
-exports.getAllSauce = (req, res, next) => {
-    Sauce.find().then(
-    (sauce) => {
+exports.getAllSauce = (req, res, next) => { //Récuperer toutes les sauces
+    Sauce.find()
+    .then((sauce) => { // pointe et renvoie la collection sauce de la base de données coté client
       res.status(200).json(sauce);
-    }
-  ).catch(
-    (error) => {
-      res.status(400).json({
-        error: error
-      });
-    }
-  );
+    })
+    .catch((error) => { // alerte console en cas de problèmes
+      res.status(400).json({error: error});
+    });
 };
 
-//Gestion des Likes et Dislikes
-exports.likes = (req, res, next) => {
-  //Récupérer l'id de la sauce
-  const sauceId = req.params.id; 
-  //Récupérer l'id de l'user
-  const userId = req.body.userId;
+exports.likeSauce = (req, res, next) => { //Gestion des Likes et Dislikes
   
-  Sauce.findById(sauceId) // Recherche le produit dans la base de données par son ID
+  const sauceId = req.params.id; // Récupère l'ID de la sauce à partir des paramètres de la requête
+  const userId = req.body.userId; // Récupère l'ID de l'utilisateur à partir du corps de la requête
+  const like = req.body.like; // Récupère la valeur du like à partir du corps de la requête
+
+  Sauce.findById(sauceId) // Recherche la sauce dans la base de données par son ID
+  
     .then(sauce => {
-      if (!sauce) {
-        return res.status(404).json({ message: 'Sauce non trouvé' }); // Si le produit n'est pas trouvé, renvoie une réponse 404
+      if (!sauce) { // Si la sauce n'est pas trouvée, renvoie une réponse 404
+        return res.status(404).json({ message: 'Sauce non trouvée' }); 
       }
-      // Vérifie si l'utilisateur a déjà voté et quel était son vote précédent
-      const arrayLiked = sauce.usersLiked.indexOf(userId);
-      const arrayDisliked = sauce.usersDisliked.indexOf(userId);
+      
+      const userIndexLiked = sauce.usersLiked.indexOf(userId); // permet de gérer les ajouts et suppressions dans le tableau usersLiked
+      const userIndexDisliked = sauce.usersDisliked.indexOf(userId); // permet de gérer les ajouts et suppressions dans le tableau usersDislikes
+      
+      if (like === 1 && userIndexLiked === -1) { // L'user like la sauce et n'est pas dans l'array like
+        sauce.likes++; // incrémente 1 au compteur likes
+        sauce.usersLiked.push(userId); // envoie l'userId dans le tableau likes
+      
+      } else if (like === 0 && userIndexLiked !== -1) { // L'user annule son like et est dans l'array like
+          sauce.likes--; // enlève 1 au compteur like
+          sauce.usersLiked.splice(userIndexLiked, 1); // retire l'userId de l'array Like
 
-      if (arrayLiked === -1 && arrayDisliked === -1) {
-        // L'utilisateur n'a pas encore voté, donc il vote "like"
-        sauce.likes++;
-        sauce.usersLiked.push(userId);
-      } else if (arrayLiked !== -1) {
-        // L'utilisateur avait déjà voté "like", donc il annule son vote
-        sauce.likes--;
-        sauce.usersLiked.splice(arrayLiked, 1);
-      } else if (arrayDisliked !== -1) {
-        // L'utilisateur avait déjà voté "dislike", donc il change son vote en "like"
-        sauce.likes++;
-        sauce.usersLiked.push(userId);
+      } else if (like === -1 && userIndexDisliked === -1) { // L'user dislike et n'est pas dans l'array dislike
+          sauce.dislikes++; // incrémente 1 au compteur dislike
+          sauce.usersDisliked.push(userId); // envoie l'userId dans l'array dislike
 
-        sauce.dislikes--;
-        sauce.usersLiked.splice(arrayDisliked, 1);
+      } else if (like === 0 && userIndexDisliked !== -1) { // L'utilisateur annule son dislike et est dans l'array dislike
+          sauce.dislikes--; // enlève 1 au compteur dislike
+          sauce.usersDisliked.splice(userIndexDisliked, 1); // retire l'userId de l'array dislike
       }
-      // Enregistre les modifications dans la base de données
-      return sauce.save()
+
+      return sauce.save() // Enregistre les modifications dans la base de données
         .then(updatedSauce => {
-            return res.status(200).json(updatedSauce); // Répond avec le produit mis à jour
+          return res.status(200).json(updatedSauce); // Répond avec la sauce mise à jour
         });
     })
-    .catch(error => {
+    .catch(error => { // alerte console en cas de problèmes
       console.error(error);
-      return res.status(500).json({ message: 'Erreur serveur' }); // Gère les erreurs et renvoie une réponse 500 (Internal Server Error) en cas d'erreur.
+      return res.status(500).json({ message: 'Erreur serveur' }); 
     });
-}
+};
