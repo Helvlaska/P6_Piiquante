@@ -35,27 +35,45 @@ exports.getOneSauce = (req, res, next) => { //Récupérer une sauce
   );
 };
 
-exports.modifySauce = (req, res, next) => { //Modifier une sauce
-    const sauceObject = req.file ? { // nouvelle obj qui regarde les modifications apportées a la sauce du body
-        ...JSON.parse(req.body.sauce), // récupérations des données du body
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}` // récupération image
-    } : { ...req.body };
-  
-    delete sauceObject._userId; // supprime le userId client pour verifier que le user est bien le createur de l'obj (token)
-    Sauce.findOne({_id: req.params.id}) // recherche dans la collection sauce, la sauce du body
-        .then((sauce) => {
-            if (sauce.userId != req.auth.userId) { // si l'user n'est pas propriétaire de la sauce
-                res.status(401).json({ message : 'Not authorized'}); // envoie une erreur console
-            } else {
-                Sauce.updateOne({ _id: req.params.id}, { ...sauceObject, _id: req.params.id}) // si l'user est le propriétaire de la sauce faire les modifications
-                .then(() => res.status(200).json({message : 'Objet modifié!'})) // modifications acceptées
-                .catch(error => res.status(401).json({ error })); // alerte console en cas de problèmes
+exports.modifySauce = (req, res, next) => { // Modifier une sauce
+
+  const allowedUpdates = { // déterminer ce qu'il peut être modifié 
+    name: req.body.name,
+    manufacturer: req.body.manufacturer,
+    description: req.body.description,
+    mainPepper: req.body.mainPepper,
+    imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
+    heat: req.body.heat
+  };
+
+  Sauce.findOne({ _id: req.params.id }) // pointer sur la bonne sauce de la base de données
+      .then((sauce) => {
+          if (sauce.userId != req.auth.userId) { // verifie que le user est bien l'auteur de la sauce
+              res.status(401).json({ message: 'Not authorized' }); // sinon message d'erreur en console
+          } else if ((allowedUpdates.heat < 0 || allowedUpdates.heat > 10)){ // Ajouter une vérification de la valeur minimale et maximale de "heat"
+                res.status(400).json({ message: 'La valeur de "heat" doit être comprise entre 0 et 10' }); // sinon message d'erreur
+          } else {
+              const filename = sauce.imageUrl.split("/images")[1];
+              fs.unlink(`images/${filename}`, (err) => {if(err) throw err;}) //suppression de l'image de la sauce car elle va être remplacer par la nouvelle image de sauce 
+                      
+              const updatedFields = {
+                name: allowedUpdates.name,
+                manufacturer: allowedUpdates.manufacturer,
+                description: allowedUpdates.description,
+                mainPepper: allowedUpdates.mainPepper,
+                imageUrl: allowedUpdates.imageUrl,
+                heat: allowedUpdates.heat
+              };
+
+              Sauce.updateOne({ _id: req.params.id }, { ...updatedFields, _id: req.params.id }) // mise a jour de la sauce avec les modifications autorisées
+                .then(() => res.status(200).json({ message: 'Objet modifié!' }))
+                .catch(error => res.status(401).json({ error }));
             }
-        })
-        .catch((error) => {
-            res.status(400).json({ error }); // alerte console en cas de problèmes
-        });
- };
+      })
+      .catch((error) => {
+        res.status(400).json({ error }); // alerte console en cas de problèmes
+      });
+};
 
 exports.deleteSauce = (req, res, next) => { //Supprimer une sauce
     Sauce.findOne({ _id: req.params.id}) // recherche dans la collection sauce, la sauce du body
@@ -89,7 +107,7 @@ exports.getAllSauce = (req, res, next) => { //Récuperer toutes les sauces
 exports.likeSauce = (req, res, next) => { //Gestion des Likes et Dislikes
   
   const sauceId = req.params.id; // Récupère l'ID de la sauce à partir des paramètres de la requête
-  const userId = req.body.userId; // Récupère l'ID de l'utilisateur à partir du corps de la requête
+  const userId = req.auth.userId; // Récupère l'ID de l'utilisateur à partir du corps de la requête
   const like = req.body.like; // Récupère la valeur du like à partir du corps de la requête
 
   Sauce.findById(sauceId) // Recherche la sauce dans la base de données par son ID

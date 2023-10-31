@@ -2,6 +2,7 @@
 const express = require('express'); //pas besoin d'installer Bodyparser déjà intégré dans Express
 const mongoose = require('mongoose');
 const path = require('path');
+const dotenv = require('dotenv');
 
 /********ROUTES********/
 const userRoutes = require('./routes/user');
@@ -12,7 +13,7 @@ const app = express();
 
 /**********MIDDLEWARE**********/
 
-// Cors
+// Cors = sécurité http, verifie les origin lors d'échange de données
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content, Accept, Content-Type, Authorization');
@@ -20,11 +21,16 @@ app.use((req, res, next) => {
     next();
   });
 
-// Express récupère les données du body en format JSON
+// Express récupère les données du body en format JSON (BodyParser)
 app.use(express.json());
 
 // Connection a la base de données MongoDB
-mongoose.connect('mongodb+srv://Helvlaska:lnORD605303@atlascluster.w3qjnpw.mongodb.net/?retryWrites=true&w=majority',
+dotenv.config(); // Charge les variables d'environnement depuis le fichier .env
+const mongoId = process.env.MONGODB_ID;
+const secretKey = process.env.SECRET_KEY;
+
+//mongoose.connect(`mongodb+srv://${mongoId}:${secretKey}@atlascluster.w3qjnpw.mongodb.net/?retryWrites=true&w=majority`,
+mongoose.connect(`mongodb+srv://Helvlaska:lnORD605303@atlascluster.w3qjnpw.mongodb.net/?retryWrites=true&w=majority`,
   { useNewUrlParser: true,
     useUnifiedTopology: true })
   .then(() => console.log('Connexion à MongoDB réussie !'))

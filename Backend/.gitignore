@@ -1,2 +1,5 @@
 #Ignorer le dossier images du Backend
 /images/
+
+#Ignorer les dossiers node_modules
+/node_modules/
